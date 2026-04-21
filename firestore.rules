@@ -1,0 +1,144 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required)
+    //   - email: string (required)
+    //   - displayName: string (optional)
+    //   - role: string (required, 'admin', 'operator', 'sales')
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: leads, customers, quotes, orders, productionJobs, fulfillmentJobs
+    // Document ID: auto-generated
+    // Fields: See firebase-blueprint.json
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        (request.auth.token.email == "luke@prosper-mfg.com" && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isOperatorOrAdmin() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'operator'
+      );
+    }
+
+    function isSalesOrAdmin() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'sales'
+      );
+    }
+
+    function hasAnyRole() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['operator', 'sales']
+      );
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid is string &&
+             data.email is string &&
+             data.role in ['admin', 'operator', 'sales'] &&
+             data.createdAt is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isOwner(userId) || isAdmin() || hasAnyRole();
+      
+      // Only admins can create/update users, or the default admin can create themselves
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (
+        isAdmin() || (isOwner(userId) && request.auth.token.email == "luke@prosper-mfg.com" && request.resource.data.role == 'admin')
+      );
+      
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && (
+        isAdmin() || (isOwner(userId) && request.resource.data.role == resource.data.role)
+      );
+      
+      allow delete: if isAdmin();
+      
+      match /integrations/{integrationId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    match /leads/{leadId} {
+      allow read: if hasAnyRole();
+      allow create: if isSalesOrAdmin();
+      allow update: if isSalesOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /customers/{customerId} {
+      allow read: if hasAnyRole();
+      allow create: if isSalesOrAdmin();
+      allow update: if isSalesOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /quotes/{quoteId} {
+      allow read: if hasAnyRole();
+      allow create: if isSalesOrAdmin();
+      allow update: if isSalesOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if hasAnyRole();
+      allow create: if isSalesOrAdmin();
+      allow update: if hasAnyRole(); // Operators can update status
+      allow delete: if isAdmin();
+    }
+
+    match /productionJobs/{jobId} {
+      allow read: if hasAnyRole();
+      allow create: if isOperatorOrAdmin() || isSalesOrAdmin();
+      allow update: if isOperatorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /fulfillmentJobs/{jobId} {
+      allow read: if hasAnyRole();
+      allow create: if isOperatorOrAdmin() || isSalesOrAdmin();
+      allow update: if isOperatorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    match /leadEmails/{emailId} {
+      allow read: if hasAnyRole();
+      allow create: if isSalesOrAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+  }
+}

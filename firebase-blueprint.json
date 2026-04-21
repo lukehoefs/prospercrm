@@ -1,0 +1,158 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the Prosper Manufacturing OS (operator, admin, sales).",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "operator", "sales"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A sales lead.",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "contactName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "source": { "type": "string" },
+        "monthlyOrderVolume": { "type": "number" },
+        "orderType": { "type": "string", "enum": ["Screen Printing", "Fulfillment", "Combined"] },
+        "notes": { "type": "string" },
+        "stage": { "type": "string", "enum": ["New", "Contacted", "Qualified", "Quoted", "Closed Won", "Closed Lost"] },
+        "lastActivity": { "type": "string", "format": "date-time" },
+        "nextFollowUp": { "type": "string", "format": "date-time" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["companyName", "stage", "createdAt"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "An active brand or client.",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "mainContact": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "shippingAddress": { "type": "string" },
+        "billingAddress": { "type": "string" },
+        "shopifyStore": { "type": "string" },
+        "pricingTier": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["companyName", "createdAt"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "A quote for screen printing, fulfillment, or combined services.",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string" },
+        "leadId": { "type": "string" },
+        "quoteType": { "type": "string", "enum": ["Screen Printing", "Fulfillment", "Combined"] },
+        "status": { "type": "string", "enum": ["Draft", "Sent", "Approved", "Rejected"] },
+        "totalPrice": { "type": "number" },
+        "costPerUnit": { "type": "number" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["quoteType", "status", "totalPrice", "createdAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "An active order.",
+      "type": "object",
+      "properties": {
+        "orderName": { "type": "string" },
+        "customerId": { "type": "string" },
+        "quoteId": { "type": "string" },
+        "orderType": { "type": "string", "enum": ["Screen Printing", "Fulfillment", "Combined"] },
+        "quantity": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Pending", "In Production", "In Fulfillment", "Shipped", "Completed", "Cancelled"] },
+        "artworkStatus": { "type": "string", "enum": ["Pending", "Approved", "Rejected", "N/A"] },
+        "assignedTo": { "type": "string" },
+        "internalNotes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["orderName", "customerId", "orderType", "status", "createdAt"]
+    },
+    "ProductionJob": {
+      "title": "Production Job",
+      "description": "A screen printing production job linked to an order.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "garmentType": { "type": "string" },
+        "sku": { "type": "string" },
+        "quantity": { "type": "number" },
+        "printLocations": { "type": "number" },
+        "inkColors": { "type": "number" },
+        "stage": { "type": "string", "enum": ["Awaiting Approval", "Ready for Production", "In Setup", "Printing", "QA", "Completed"] },
+        "pressAssignment": { "type": "string" },
+        "operatorId": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderId", "stage", "createdAt"]
+    },
+    "FulfillmentJob": {
+      "title": "Fulfillment Job",
+      "description": "A fulfillment job linked to an order.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "inventoryLinked": { "type": "boolean" },
+        "unitsReady": { "type": "number" },
+        "stage": { "type": "string", "enum": ["Inventory Received", "Ready to Pick", "Packing", "Shipped", "Completed"] },
+        "trackingInfo": { "type": "string" },
+        "specialInstructions": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderId", "stage", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "System users."
+    },
+    "/leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Sales leads."
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Active customers."
+    },
+    "/quotes/{quoteId}": {
+      "schema": "Quote",
+      "description": "Quotes generated for leads or customers."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Active orders."
+    },
+    "/productionJobs/{jobId}": {
+      "schema": "ProductionJob",
+      "description": "Screen printing production jobs."
+    },
+    "/fulfillmentJobs/{jobId}": {
+      "schema": "FulfillmentJob",
+      "description": "Fulfillment jobs."
+    }
+  }
+}

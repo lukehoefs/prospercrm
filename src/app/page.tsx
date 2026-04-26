@@ -13,7 +13,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-slate-500 mt-2">Welcome back. Here's what's happening today.</p>
+        <p className="text-slate-500 mt-2">Welcome back. Here&apos;s what&apos;s happening today.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

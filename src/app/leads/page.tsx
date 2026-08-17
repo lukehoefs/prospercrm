@@ -1,71 +1,89 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Plus } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TwentyApiError } from '@/lib/twenty/client';
+import { TwentyConfigError } from '@/lib/twenty/config';
+import { listLeads, type Lead } from '@/lib/twenty/leads';
 
-export default function LeadsPage() {
-  const leads = [
-    { id: 1, name: 'Alice Smith', company: 'Acme Corp', status: 'New', email: 'alice@acme.com', date: 'Oct 24, 2023' },
-    { id: 2, name: 'Bob Jones', company: 'Globex Inc', status: 'Contacted', email: 'bob@globex.com', date: 'Oct 23, 2023' },
-    { id: 3, name: 'Charlie Brown', company: 'Soylent Corp', status: 'Qualified', email: 'charlie@soylent.com', date: 'Oct 21, 2023' },
-    { id: 4, name: 'Diana Prince', company: 'Initech', status: 'Lost', email: 'diana@initech.com', date: 'Oct 19, 2023' },
-  ];
+import { LeadsView } from './leads-view';
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+/** Leads are live CRM data — never statically prerendered. */
+export const dynamic = 'force-dynamic';
+
+type LoadResult =
+  | { ok: true; leads: Lead[] }
+  | { ok: false; title: string; detail: string; hint?: string };
+
+async function loadLeads(): Promise<LoadResult> {
+  try {
+    return { ok: true, leads: await listLeads() };
+  } catch (error) {
+    if (error instanceof TwentyConfigError) {
+      return {
+        ok: false,
+        title: 'Twenty is not configured',
+        detail: error.message,
+        hint: 'Copy .env.example to .env.local and fill in both values, then restart the dev server.',
+      };
+    }
+
+    if (error instanceof TwentyApiError) {
+      if (error.isAuthError) {
+        return {
+          ok: false,
+          title: 'Twenty rejected the API key',
+          detail: `The instance returned ${error.status}.`,
+          hint: 'Generate a fresh key in Twenty under Settings → APIs & Webhooks and update TWENTY_API_KEY.',
+        };
+      }
+      if (error.status === 404) {
+        return {
+          ok: false,
+          title: 'Twenty endpoint not found',
+          detail: `${error.status} on ${error.path}.`,
+          hint: 'Check that TWENTY_BASE_URL points at the Twenty server root, without a trailing path.',
+        };
+      }
+      return {
+        ok: false,
+        title: 'Twenty returned an error',
+        detail: `${error.status} on ${error.path}. ${error.body.slice(0, 300)}`,
+      };
+    }
+
+    // fetch throws TypeError when DNS fails, the host refuses, or egress is blocked.
+    return {
+      ok: false,
+      title: 'Could not reach Twenty',
+      detail: error instanceof Error ? error.message : 'Unknown network error.',
+      hint: 'Confirm the instance is running and that this server is allowed to reach TWENTY_BASE_URL.',
+    };
+  }
+}
+
+export default async function LeadsPage() {
+  const result = await loadLeads();
+
+  if (!result.ok) {
+    return (
+      <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
           <p className="text-slate-500 mt-2">Manage your prospective customers here.</p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" /> Add Lead
-        </Button>
-      </div>
 
-      <Card>
-        <CardHeader className="py-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="Search leads..." className="pl-8" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date Added</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell>{lead.company}</TableCell>
-                  <TableCell>{lead.email}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium
-                      ${lead.status === 'New' ? 'bg-blue-100 text-blue-800' :
-                        lead.status === 'Contacted' ? 'bg-yellow-100 text-yellow-800' :
-                        lead.status === 'Qualified' ? 'bg-green-100 text-green-800' :
-                        'bg-slate-100 text-slate-800'
-                      }
-                    `}>
-                      {lead.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{lead.date}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
-  );
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardHeader>
+            <CardTitle className="text-amber-900">{result.title}</CardTitle>
+            <CardDescription className="text-amber-800">{result.detail}</CardDescription>
+          </CardHeader>
+          {result.hint ? (
+            <CardContent>
+              <p className="text-sm text-amber-800">{result.hint}</p>
+            </CardContent>
+          ) : null}
+        </Card>
+      </div>
+    );
+  }
+
+  return <LeadsView leads={result.leads} />;
 }

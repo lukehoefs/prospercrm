@@ -16,13 +16,26 @@ export class TwentyApiError extends Error {
   readonly status: number;
   readonly path: string;
   readonly body: string;
+  /** The response succeeded but was not JSON — see `looksLikeWrongBaseUrl`. */
+  readonly nonJson: boolean;
 
-  constructor(status: number, path: string, body: string) {
+  constructor(status: number, path: string, body: string, nonJson = false) {
     super(`Twenty API ${status} on ${path}: ${truncate(body, 500)}`);
     this.name = 'TwentyApiError';
     this.status = status;
     this.path = path;
     this.body = body;
+    this.nonJson = nonJson;
+  }
+
+  /**
+   * A 2xx that isn't JSON means the base URL is pointed at something other
+   * than the Twenty API — a login page, a reverse proxy, or the front-end.
+   * Reporting the status alone produces "Twenty returned 200", which reads as
+   * a Twenty fault rather than a configuration mistake.
+   */
+  get looksLikeWrongBaseUrl(): boolean {
+    return this.nonJson;
   }
 
   /**
@@ -101,6 +114,7 @@ export async function twentyRequest<T>(path: string, options: RequestOptions = {
       response.status,
       path,
       `Expected JSON, received: ${truncate(text, 200)}`,
+      true,
     );
   }
 }

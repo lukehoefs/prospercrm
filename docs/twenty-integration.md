@@ -26,48 +26,80 @@ npm run twenty:introspect -- --json  # full JSON
 
 The script reads schema metadata only. It fetches no records and writes nothing.
 
-## How leads map to Twenty
+## Why leads map to Person
 
-Twenty has **no built-in Lead object**. Workspaces model prospects either as
-People, as Opportunities, or as a custom object. This integration maps the app's
-`Lead` onto Twenty's standard **`people`** object.
+Twenty ships **no Lead object**. The three candidates were Person, Opportunity,
+and a custom object. Person wins on field fit and blast radius:
 
-| App field    | Twenty field                 |
-| ------------ | ---------------------------- |
-| `firstName`  | `name.firstName`             |
-| `lastName`   | `name.lastName`              |
-| `email`      | `emails.primaryEmail`        |
-| `phone`      | `phones.primaryPhoneNumber`  |
-| `company`    | `company.name` (via `depth=1`) |
-| `jobTitle`   | `jobTitle`                   |
-| `city`       | `city`                       |
-| `status`     | `leadStatus` (custom field)  |
-| `createdAt`  | `createdAt`                  |
+- Person natively carries six of the seven attributes a lead needs — `name`,
+  `emails`, `phones`, `jobTitle`, `city`, `companyId` — with the right types. It
+  is missing exactly one: pipeline status, which is an *additive* custom field
+  that changes nothing about existing records.
+- Opportunity carries one of the seven and structurally cannot hold email, phone,
+  job title, or city. Using it would mean several denormalized custom fields
+  duplicating the same human, plus editing the standard stage enum
+  (`NEW`/`SCREENING`/`MEETING`/`PROPOSAL`/`CUSTOMER`, which has no "Lost") —
+  rewriting the meaning of every existing opportunity, saved view, and kanban.
+- A custom `leads` object would forfeit message participants, calendar
+  participants, timeline activities, and note/task targets, all of which
+  associate to People only.
 
-All of this lives in `src/lib/twenty/leads.ts`. Nothing outside that file knows
-Twenty's wire format, so adapting to a different schema means editing one module.
+Accepted costs: leads live in the shared People list, and deleting a lead deletes
+a Person along with everything linked to them.
 
-### Version differences are handled, not assumed
+| App field    | Twenty field                    |
+| ------------ | ------------------------------- |
+| `firstName`  | `name.firstName`                |
+| `lastName`   | `name.lastName`                 |
+| `email`      | `emails.primaryEmail`           |
+| `phone`      | `phones.primaryPhoneNumber`     |
+| *(display)*  | `phones.primaryPhoneCallingCode` |
+| `company`    | `company.name` (via `depth=1`)  |
+| `jobTitle`   | `jobTitle`                      |
+| `city`       | `city`                          |
+| `status`     | a custom SELECT field, if present |
+| `createdAt`  | `createdAt`                     |
 
-Two things vary between Twenty versions and workspaces. Rather than betting on
-one, the mapping adapts:
+All of it lives in `src/lib/twenty/leads.ts`. Nothing outside that file knows
+Twenty's wire format.
 
-1. **Field shape.** Current Twenty stores `name`, `emails`, and `phones` as
-   composite objects (`name.firstName`); older versions used flat scalars
-   (`firstName`, `email`). Reads accept both. Writes try composite first and
-   retry flat if the instance rejects the body, then remember which shape
-   worked — so the fallback costs one extra request per process, not per write.
-2. **Status field.** There is no standard status field on Person. The app reads
-   whichever custom field `TWENTY_LEAD_STATUS_FIELD` names, defaulting to
-   `leadStatus`. Where no such field exists, every lead reports `New` and status
-   edits are dropped by Twenty — a missing field, not an error.
+## Status is discovered, not assumed
 
-To get real statuses, add the field in Twenty: **Settings → Data model → Person
-→ Add field**, type SELECT, with options `New`, `Contacted`, `Qualified`,
-`Lost`. Name it `leadStatus`, or name it anything and point
-`TWENTY_LEAD_STATUS_FIELD` at it.
+Twenty has no standard status field on Person, so whether one exists is a
+property of *your workspace*. On first use the app probes
+`/rest/metadata/objects` once per process and caches the answer:
 
-Run the introspection script to see exactly what your workspace has.
+- **Field present** — its SELECT options drive the dropdown, and status reads
+  and writes normally.
+- **Field absent** — the app shows a one-time notice explaining how to add it,
+  hides the status control, renders status as `—`, and **never sends the field**.
+
+That last part matters. Writing a field the workspace does not have is either
+rejected outright or silently discarded, so the app must know before it writes.
+Equally, a record with no status renders as `—` and never as an invented "New":
+a fabricated status is indistinguishable from a real one and drives duplicate
+outreach.
+
+To enable status: **Settings → Data model → Person → Add field**, type SELECT,
+options `New`, `Contacted`, `Qualified`, `Lost`. Name it `leadStatus`, or name it
+anything and point `TWENTY_LEAD_STATUS_FIELD` at it.
+
+## Field shape
+
+Current Twenty stores `name`, `emails`, and `phones` as composite objects
+(`name.firstName`); older versions used flat scalars (`firstName`, `email`).
+Reads accept either. Writes try composite and retry flat once; if the retry also
+fails, the **original** error propagates, because the retry's error describes
+fields the caller never mentioned and would send you chasing the wrong problem.
+
+Once the target instance is confirmed composite, delete the dual-shape path
+outright rather than keeping a guess in the write path.
+
+Two related notes: `name` is written as a unit, so a partial update must supply
+both halves or the missing one is blanked; and `phone` carries the national
+number only, with the calling code left as Twenty holds it — joining them on
+read and writing the joined string back would duplicate the prefix on every
+edit.
 
 ## Architecture
 
@@ -76,7 +108,7 @@ src/lib/twenty/
   config.ts       env vars; throws if unset rather than guessing a host
   client.ts       authenticated fetch + typed TwentyApiError   [server-only]
   lead-types.ts   types and constants safe to import in Client Components
-  leads.ts        the Person <-> Lead mapping and CRUD         [server-only]
+  leads.ts        status probe, Person <-> Lead mapping, CRUD  [server-only]
 
 src/app/leads/
   page.tsx        Server Component; fetches and renders error states
@@ -88,9 +120,24 @@ src/app/leads/
 a Client Component fails the build instead of leaking the API key into the
 browser bundle.
 
-Mutations call `updateTag(LEADS_CACHE_TAG)` rather than `revalidateTag`. Both
-exist in Next.js 16, but `updateTag` gives read-your-writes semantics — the
-table reflects an edit immediately instead of after a background revalidation.
+Mutations call `refresh()` from `next/cache`. `updateTag` was used originally,
+but `/leads` is `force-dynamic` and therefore uncached — tags only attach to
+cached data, so there was no entry for the tag to expire and the call did
+nothing.
+
+## Failure modes worth knowing
+
+- **A 2xx with an unreadable payload** raises `TwentyEnvelopeError` rather than
+  degrading to an empty list. A broken integration that renders "No leads yet"
+  is indistinguishable from an empty workspace, which is the worst outcome.
+- **A write that returns no record** reports as unconfirmed rather than success.
+  The dialog stays open and says so.
+- **A 2xx that isn't JSON** is reported as a wrong `TWENTY_BASE_URL`, not as a
+  Twenty error — it usually means the URL points at a login page or front-end.
+- **A proxy refusing the request** is distinguished from a rejected key. They
+  look alike (both 403) and have completely different remedies.
+- **The list is capped** at 60 by default. The UI says "Newest 60 of more
+  than 60" when there are more, because search filters only the fetched page.
 
 ## Security
 

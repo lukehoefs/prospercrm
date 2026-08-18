@@ -1,10 +1,10 @@
 'use server';
 
-import { updateTag } from 'next/cache';
+import { refresh } from 'next/cache';
 
 import { TwentyApiError } from '@/lib/twenty/client';
 import { TwentyConfigError } from '@/lib/twenty/config';
-import { createLead, deleteLead, updateLead, LEADS_CACHE_TAG } from '@/lib/twenty/leads';
+import { createLead, deleteLead, updateLead, TwentyEnvelopeError } from '@/lib/twenty/leads';
 import type { LeadInput } from '@/lib/twenty/leads';
 
 /**
@@ -31,9 +31,15 @@ function toMessage(error: unknown): string {
   if (error instanceof TwentyConfigError) {
     return 'Twenty is not configured. Set TWENTY_BASE_URL and TWENTY_API_KEY in .env.local.';
   }
+  if (error instanceof TwentyEnvelopeError) {
+    return `Twenty accepted the request but returned an unrecognized response (${error.received}). The write may not have been saved.`;
+  }
   if (error instanceof TwentyApiError) {
     if (error.isBlockedUpstream) {
       return 'A proxy blocked the request before it reached Twenty. Allow the Twenty host in the network egress settings.';
+    }
+    if (error.looksLikeWrongBaseUrl) {
+      return 'TWENTY_BASE_URL does not point at the Twenty API — the response was not JSON. Check it targets the server root.';
     }
     if (error.isAuthError) {
       return 'Twenty rejected the API key. Generate a new one in Settings → APIs & Webhooks.';
@@ -75,6 +81,14 @@ function readForm(formData: FormData): LeadInput {
   };
 }
 
+/**
+ * A null result means Twenty answered 2xx but without a record this module
+ * could recognize, so the write is unconfirmed. Reporting success there closes
+ * the dialog on a write that may never have landed.
+ */
+const UNCONFIRMED =
+  'Twenty responded but did not return the saved record, so the change is unconfirmed. Reload to check.';
+
 export async function createLeadAction(
   _previous: ActionResult | null,
   formData: FormData,
@@ -86,16 +100,16 @@ export async function createLeadAction(
     return { ok: false, error: 'Please fix the highlighted fields.', fieldErrors };
   }
 
+  let created;
   try {
-    await createLead(input);
+    created = await createLead(input);
   } catch (error) {
     return { ok: false, error: toMessage(error) };
   }
 
-  // Expire and refetch in the same request so the new lead is visible
-  // immediately rather than after a background revalidation.
-  updateTag(LEADS_CACHE_TAG);
-  return { ok: true };
+  // Refresh regardless: the record may exist even when unconfirmed.
+  refresh();
+  return created ? { ok: true } : { ok: false, error: UNCONFIRMED };
 }
 
 export async function updateLeadAction(
@@ -112,14 +126,15 @@ export async function updateLeadAction(
     return { ok: false, error: 'Please fix the highlighted fields.', fieldErrors };
   }
 
+  let updated;
   try {
-    await updateLead(id, input);
+    updated = await updateLead(id, input);
   } catch (error) {
     return { ok: false, error: toMessage(error) };
   }
 
-  updateTag(LEADS_CACHE_TAG);
-  return { ok: true };
+  refresh();
+  return updated ? { ok: true } : { ok: false, error: UNCONFIRMED };
 }
 
 export async function deleteLeadAction(
@@ -135,6 +150,6 @@ export async function deleteLeadAction(
     return { ok: false, error: toMessage(error) };
   }
 
-  updateTag(LEADS_CACHE_TAG);
+  refresh();
   return { ok: true };
 }

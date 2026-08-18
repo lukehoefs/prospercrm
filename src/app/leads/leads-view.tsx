@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LEAD_STATUSES, type Lead } from '@/lib/twenty/lead-types';
+import { LEAD_STATUSES, type Lead, type LeadsPage, type StatusFieldInfo } from '@/lib/twenty/lead-types';
 
 import { createLeadAction, deleteLeadAction, updateLeadAction, type ActionResult } from './actions';
 
@@ -43,20 +43,39 @@ function statusClasses(status: string): string {
   }
 }
 
+/**
+ * Formatted in UTC deliberately. `toLocaleDateString` with the ambient zone
+ * renders differently on the server and in the browser, which React reports as
+ * a hydration mismatch and the reader sees as the date changing under them.
+ */
+const DATE_FORMAT = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return DATE_FORMAT.format(date);
+}
+
+function formatPhone(lead: Lead): string {
+  const joined = [lead.phoneCallingCode, lead.phone].filter(Boolean).join(' ');
+  return joined || '—';
 }
 
 /** Create and edit share this form; `lead` present means edit. */
 function LeadDialog({
   lead,
+  statusField,
   open,
   onOpenChange,
 }: {
   lead?: Lead;
+  statusField: StatusFieldInfo;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -72,6 +91,7 @@ function LeadDialog({
   }, [state, onOpenChange]);
 
   const fieldErrors = state && !state.ok ? (state.fieldErrors ?? {}) : {};
+  const statusOptions = statusField.options.length > 0 ? statusField.options : [...LEAD_STATUSES];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -108,7 +128,9 @@ function LeadDialog({
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">
+                Phone {lead?.phoneCallingCode ? `(${lead.phoneCallingCode})` : null}
+              </Label>
               <Input id="phone" name="phone" defaultValue={lead?.phone} />
             </div>
             <div className="space-y-2">
@@ -122,21 +144,28 @@ function LeadDialog({
               <Label htmlFor="jobTitle">Job title</Label>
               <Input id="jobTitle" name="jobTitle" defaultValue={lead?.jobTitle} />
             </div>
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select name="status" defaultValue={lead?.status ?? 'New'}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {LEAD_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {status}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/*
+              The status control only exists when the workspace has the field.
+              Rendering it otherwise would collect a value that Twenty either
+              rejects or silently discards.
+            */}
+            {statusField.available ? (
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select name="status" defaultValue={lead?.status ?? statusOptions[0]}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
           </div>
 
           {state && !state.ok ? (
@@ -180,8 +209,8 @@ function DeleteLeadDialog({
           <DialogHeader>
             <DialogTitle>Delete lead</DialogTitle>
             <DialogDescription>
-              This deletes {lead.displayName} from Twenty. Twenty keeps deleted records for a
-              period, so this can be undone there.
+              This deletes {lead.displayName} from Twenty. The record is a Person, so anything
+              linked to them — notes, tasks, emails — is affected too.
             </DialogDescription>
           </DialogHeader>
 
@@ -203,8 +232,11 @@ function DeleteLeadDialog({
   );
 }
 
-export function LeadsView({ leads }: { leads: Lead[] }) {
+export function LeadsView({ page }: { page: LeadsPage }) {
+  const { leads, statusField, limit, truncated } = page;
+
   const [query, setQuery] = useState('');
+  const [createSeq, setCreateSeq] = useState(0);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Lead | null>(null);
   const [deleting, setDeleting] = useState<Lead | null>(null);
@@ -220,19 +252,43 @@ export function LeadsView({ leads }: { leads: Lead[] }) {
     );
   }, [leads, query]);
 
+  const countLabel = truncated
+    ? `Newest ${limit} of more than ${limit} leads`
+    : `${leads.length} ${leads.length === 1 ? 'lead' : 'leads'}`;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-          <p className="text-slate-500 mt-2">
-            {leads.length} {leads.length === 1 ? 'lead' : 'leads'} from Twenty.
-          </p>
+          <p className="text-slate-500 mt-2">{countLabel} from Twenty.</p>
         </div>
-        <Button onClick={() => setCreating(true)}>
+        <Button
+          onClick={() => {
+            // Bump the key so a previous attempt's error does not greet the
+            // next open with a stale banner over an empty form.
+            setCreateSeq((seq) => seq + 1);
+            setCreating(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-2" /> Add Lead
         </Button>
       </div>
+
+      {!statusField.available ? (
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          Status isn’t tracked in this workspace. Twenty has no status field on Person by default —
+          add a SELECT field named <code className="font-mono">{statusField.name}</code> under
+          Settings → Data model → Person to enable it here.
+        </div>
+      ) : null}
+
+      {truncated ? (
+        <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+          Showing the {limit} most recently added leads. Search filters this page only, so older
+          records won’t appear in results.
+        </div>
+      ) : null}
 
       <Card>
         <CardHeader className="py-4">
@@ -254,6 +310,7 @@ export function LeadsView({ leads }: { leads: Lead[] }) {
                 <TableHead>Name</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date Added</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
@@ -262,7 +319,7 @@ export function LeadsView({ leads }: { leads: Lead[] }) {
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-slate-500 py-8">
+                  <TableCell colSpan={7} className="text-center text-slate-500 py-8">
                     {leads.length === 0
                       ? 'No leads in Twenty yet. Add one to get started.'
                       : 'No leads match that search.'}
@@ -279,12 +336,18 @@ export function LeadsView({ leads }: { leads: Lead[] }) {
                     </TableCell>
                     <TableCell>{lead.company || '—'}</TableCell>
                     <TableCell>{lead.email || '—'}</TableCell>
+                    <TableCell>{formatPhone(lead)}</TableCell>
                     <TableCell>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses(lead.status)}`}
-                      >
-                        {lead.status}
-                      </span>
+                      {/* No status is rendered as absent, never as a real value. */}
+                      {lead.status ? (
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${statusClasses(lead.status)}`}
+                        >
+                          {lead.status}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
                     </TableCell>
                     <TableCell>{formatDate(lead.createdAt)}</TableCell>
                     <TableCell className="text-right">
@@ -313,13 +376,21 @@ export function LeadsView({ leads }: { leads: Lead[] }) {
         </CardContent>
       </Card>
 
-      <LeadDialog open={creating} onOpenChange={setCreating} />
+      {creating ? (
+        <LeadDialog
+          key={`create-${createSeq}`}
+          statusField={statusField}
+          open
+          onOpenChange={(next) => !next && setCreating(false)}
+        />
+      ) : null}
 
       {/* Keyed so the form resets when a different lead is opened. */}
       {editing ? (
         <LeadDialog
           key={editing.id}
           lead={editing}
+          statusField={statusField}
           open
           onOpenChange={(next) => !next && setEditing(null)}
         />

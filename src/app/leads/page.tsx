@@ -1,7 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TwentyApiError } from '@/lib/twenty/client';
 import { TwentyConfigError } from '@/lib/twenty/config';
-import { listLeads, type Lead } from '@/lib/twenty/leads';
+import { listLeads, TwentyEnvelopeError, type LeadsPage } from '@/lib/twenty/leads';
 
 import { LeadsView } from './leads-view';
 
@@ -9,12 +9,12 @@ import { LeadsView } from './leads-view';
 export const dynamic = 'force-dynamic';
 
 type LoadResult =
-  | { ok: true; leads: Lead[] }
+  | { ok: true; page: LeadsPage }
   | { ok: false; title: string; detail: string; hint?: string };
 
 async function loadLeads(): Promise<LoadResult> {
   try {
-    return { ok: true, leads: await listLeads() };
+    return { ok: true, page: await listLeads() };
   } catch (error) {
     if (error instanceof TwentyConfigError) {
       return {
@@ -25,6 +25,15 @@ async function loadLeads(): Promise<LoadResult> {
       };
     }
 
+    if (error instanceof TwentyEnvelopeError) {
+      return {
+        ok: false,
+        title: 'Unrecognized response from Twenty',
+        detail: error.message,
+        hint: 'The request succeeded but the payload was not the expected shape. This usually means a Twenty version whose REST envelope differs from the one this integration reads.',
+      };
+    }
+
     if (error instanceof TwentyApiError) {
       if (error.isBlockedUpstream) {
         return {
@@ -32,6 +41,14 @@ async function loadLeads(): Promise<LoadResult> {
           title: 'Blocked before reaching Twenty',
           detail: 'A proxy refused to forward the request, so it never reached the instance.',
           hint: 'Allow the Twenty host in this environment’s network egress settings.',
+        };
+      }
+      if (error.looksLikeWrongBaseUrl) {
+        return {
+          ok: false,
+          title: 'TWENTY_BASE_URL is not the Twenty API',
+          detail: `The instance answered ${error.status} with something other than JSON.`,
+          hint: 'Point TWENTY_BASE_URL at the Twenty server root — not a login page, front-end URL, or a path.',
         };
       }
       if (error.isAuthError) {
@@ -93,5 +110,5 @@ export default async function LeadsPage() {
     );
   }
 
-  return <LeadsView leads={result.leads} />;
+  return <LeadsView page={result.page} />;
 }

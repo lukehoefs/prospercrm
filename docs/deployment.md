@@ -45,13 +45,33 @@ read and write the CRM. Vercel Authentication is therefore enabled, scoped to
 `prod_deployment_urls_and_all_previews`, so only Prosper MFG team members can
 reach any deployment.
 
-**This has a gap worth knowing.** That scope covers `*.vercel.app` deployment
-URLs and previews. It does **not** cover a custom domain attached to production,
-and this team's plan cannot protect one (`all` is rejected with
-`invalid_sso_protection`). Attaching a custom domain would therefore publish an
-unauthenticated CRM to the internet.
+**This has a gap worth knowing.** That scope covers deployment URLs and
+previews. It does **not** cover production domains, and this team's plan cannot
+protect them — `all` is rejected with `invalid_sso_protection`. Attaching a
+custom domain would therefore publish an unauthenticated CRM to the internet.
 
-So: do not attach a custom domain until the app has real authentication. When it
+The project has three aliases, and they are not equally covered:
+
+| Alias | Kind |
+| --- | --- |
+| `prospercrm-ioz6qx7m9-prosper-mfg.vercel.app` | deployment URL — protected |
+| `prospercrm-git-claude-twenty-crm-connection-fq5961-prosper-mfg.vercel.app` | branch/preview — protected |
+| `prospercrm-pearl.vercel.app` | production domain — **verify before trusting** |
+| `prospercrm-prosper-mfg.vercel.app` | production domain — **verify before trusting** |
+
+Whether Vercel treats an auto-assigned production `.vercel.app` alias as a
+"production deployment URL" (protected) or a "production domain" (not) was not
+determined here, and it cannot be tested from a Claude Code session because
+`vercel.app` is itself denied by the egress proxy. Guessing is not acceptable
+for a writable CRM, so **check it directly**: open
+`https://prospercrm-pearl.vercel.app` in a private window while logged out of
+Vercel. A login wall means protected. The app itself means it is public.
+
+Until that check passes, do not set `TWENTY_API_KEY`. Without it `/leads` reports
+"Twenty is not configured" and there is nothing to leak; with it, an unprotected
+alias is a writable CRM open to the internet.
+
+Do not attach a custom domain until the app has real authentication. When it
 does, add the auth check in `src/app/leads/actions.ts`, since Server Actions are
 the reachable write surface.
 

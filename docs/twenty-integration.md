@@ -47,21 +47,27 @@ People, as Opportunities, or as a custom object. This integration maps the app's
 All of this lives in `src/lib/twenty/leads.ts`. Nothing outside that file knows
 Twenty's wire format, so adapting to a different schema means editing one module.
 
-### Two assumptions worth checking
+### Version differences are handled, not assumed
 
-These are the likely causes if reads come back empty or writes return 400:
+Two things vary between Twenty versions and workspaces. Rather than betting on
+one, the mapping adapts:
 
-1. **Composite fields.** Current Twenty stores `name`, `emails`, and `phones` as
-   composite objects (`name.firstName`). Older versions used flat scalars
-   (`firstName`, `email`). The mapping assumes composite.
-2. **`leadStatus` is a custom field.** There is no standard status field on
-   Person. If your workspace does not define one, every lead reports `New` and
-   status edits are silently dropped by Twenty. To add it: **Settings → Data
-   model → Person → Add field**, type SELECT, name `leadStatus`, with options
-   `New`, `Contacted`, `Qualified`, `Lost`. Or point `LEAD_STATUS_FIELD` in
-   `leads.ts` at whatever field you already use.
+1. **Field shape.** Current Twenty stores `name`, `emails`, and `phones` as
+   composite objects (`name.firstName`); older versions used flat scalars
+   (`firstName`, `email`). Reads accept both. Writes try composite first and
+   retry flat if the instance rejects the body, then remember which shape
+   worked — so the fallback costs one extra request per process, not per write.
+2. **Status field.** There is no standard status field on Person. The app reads
+   whichever custom field `TWENTY_LEAD_STATUS_FIELD` names, defaulting to
+   `leadStatus`. Where no such field exists, every lead reports `New` and status
+   edits are dropped by Twenty — a missing field, not an error.
 
-Run the introspection script to confirm both against your actual workspace.
+To get real statuses, add the field in Twenty: **Settings → Data model → Person
+→ Add field**, type SELECT, with options `New`, `Contacted`, `Qualified`,
+`Lost`. Name it `leadStatus`, or name it anything and point
+`TWENTY_LEAD_STATUS_FIELD` at it.
+
+Run the introspection script to see exactly what your workspace has.
 
 ## Architecture
 

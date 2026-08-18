@@ -26,6 +26,14 @@ async function loadLeads(): Promise<LoadResult> {
     }
 
     if (error instanceof TwentyApiError) {
+      if (error.isBlockedUpstream) {
+        return {
+          ok: false,
+          title: 'Blocked before reaching Twenty',
+          detail: 'A proxy refused to forward the request, so it never reached the instance.',
+          hint: 'Allow the Twenty host in this environment’s network egress settings.',
+        };
+      }
       if (error.isAuthError) {
         return {
           ok: false,

@@ -65,8 +65,17 @@ async function get(path) {
   if (!response.ok) {
     console.error(`\nHTTP ${response.status} on ${path}`);
     console.error(text.slice(0, 800));
-    if (response.status === 401 || response.status === 403) {
-      console.error('\nThe API key was rejected. Generate a new one in Twenty:');
+
+    // A proxy between here and Twenty can also answer 403. That means the
+    // request never reached the instance, so the key is not implicated —
+    // saying "bad key" here sends people off rewriting credentials that
+    // were never sent.
+    if (/not in allowlist|egress|proxy/i.test(text)) {
+      console.error('\nThe request was blocked before it reached Twenty.');
+      console.error('Allow this host in the network egress settings, or run this');
+      console.error('script from a machine that can reach the instance directly.');
+    } else if (response.status === 401 || response.status === 403) {
+      console.error('\nTwenty rejected the API key. Generate a new one:');
       console.error('  Settings -> APIs & Webhooks -> Create API key');
     }
     process.exit(1);

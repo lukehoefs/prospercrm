@@ -32,6 +32,9 @@ function toMessage(error: unknown): string {
     return 'Twenty is not configured. Set TWENTY_BASE_URL and TWENTY_API_KEY in .env.local.';
   }
   if (error instanceof TwentyApiError) {
+    if (error.isBlockedUpstream) {
+      return 'A proxy blocked the request before it reached Twenty. Allow the Twenty host in the network egress settings.';
+    }
     if (error.isAuthError) {
       return 'Twenty rejected the API key. Generate a new one in Settings → APIs & Webhooks.';
     }

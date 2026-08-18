@@ -25,8 +25,19 @@ export class TwentyApiError extends Error {
     this.body = body;
   }
 
+  /**
+   * A proxy between this server and Twenty refused to forward the request,
+   * so it never reached the instance. Distinguished from a rejected key
+   * because the remedy is completely different — and because reporting this
+   * as "bad credentials" sends people off rotating a key that was never sent.
+   */
+  get isBlockedUpstream(): boolean {
+    return this.status === 403 && /not in allowlist|egress|proxy/i.test(this.body);
+  }
+
   /** The key is missing, revoked, or belongs to another workspace. */
   get isAuthError(): boolean {
+    if (this.isBlockedUpstream) return false;
     return this.status === 401 || this.status === 403;
   }
 }

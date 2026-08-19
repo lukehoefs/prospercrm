@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge, quoteTone, quoteStaffLabel } from '@/components/status-badge';
-import { Button } from '@/components/ui/button';
 import { ACTIVITIES, BRANDS, QUOTES, TASKS } from '@/lib/data';
 import { formatCompact, formatUsd } from '@/lib/utils';
 
@@ -15,7 +14,7 @@ export default function CommandPage() {
     { label: 'Open pipeline', value: formatUsd(pipeline), hint: `${openQuotes.length} quotes out` },
     { label: 'Units quoted', value: formatCompact(unitsQuoted), hint: 'Across live programs' },
     { label: 'Active brands', value: String(activeBrands), hint: `${BRANDS.length} on the book` },
-    { label: 'Samples / follow-ups', value: String(TASKS.length), hint: 'On today’s list' },
+    { label: 'Samples / follow-ups', value: String(TASKS.length), hint: "On today's list" },
   ];
 
   const stale = BRANDS.filter((b) => b.health < 70);
@@ -28,12 +27,18 @@ export default function CommandPage() {
         description="Pipeline, samples in flight, and the work that moves a program."
         actions={
           <>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/quotes">New quote</Link>
-            </Button>
-            <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90" asChild>
-              <Link href="/leads">New brand</Link>
-            </Button>
+            <Link
+              href="/quotes"
+              className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+            >
+              New quote
+            </Link>
+            <Link
+              href="/leads"
+              className="inline-flex h-7 items-center rounded-md bg-cyan px-2.5 text-[0.8rem] font-semibold text-navy hover:bg-cyan/90"
+            >
+              New brand
+            </Link>
           </>
         }
       />

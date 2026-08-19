@@ -1,84 +1,146 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, DollarSign, Activity, FileText } from 'lucide-react';
+import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
+import { StatusBadge, quoteTone, quoteStaffLabel } from '@/components/status-badge';
+import { Button } from '@/components/ui/button';
+import { ACTIVITIES, BRANDS, QUOTES, TASKS } from '@/lib/data';
+import { formatCompact, formatUsd } from '@/lib/utils';
 
-export default function Dashboard() {
+export default function CommandPage() {
+  const openQuotes = QUOTES.filter((q) => q.status === 'sent' || q.status === 'viewed');
+  const pipeline = QUOTES.reduce((sum, q) => sum + q.units * q.unitPrice, 0);
+  const activeBrands = BRANDS.filter((b) => b.tier === 'Active' || b.tier === 'Strategic').length;
+  const unitsQuoted = QUOTES.reduce((sum, q) => sum + q.units, 0);
+
   const stats = [
-    { title: 'Total Leads', value: '2,845', icon: Users, trend: '+14%' },
-    { title: 'Revenue', value: '$45,231', icon: DollarSign, trend: '+8%' },
-    { title: 'Active Quotes', value: '145', icon: FileText, trend: '+2%' },
-    { title: 'Conversion Rate', value: '24.3%', icon: Activity, trend: '+4.1%' },
+    { label: 'Open pipeline', value: formatUsd(pipeline), hint: `${openQuotes.length} quotes out` },
+    { label: 'Units quoted', value: formatCompact(unitsQuoted), hint: 'Across live programs' },
+    { label: 'Active brands', value: String(activeBrands), hint: `${BRANDS.length} on the book` },
+    { label: 'Samples / follow-ups', value: String(TASKS.length), hint: 'On today’s list' },
   ];
 
+  const stale = BRANDS.filter((b) => b.health < 70);
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-slate-500 mt-2">Welcome back. Here's what's happening today.</p>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Floor feed"
+        title="Command"
+        description="Pipeline, samples in flight, and the work that moves a program."
+        actions={
+          <>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/quotes">New quote</Link>
+            </Button>
+            <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90" asChild>
+              <Link href="/leads">New brand</Link>
+            </Button>
+          </>
+        }
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-slate-500">
-                  {stat.title}
-                </CardTitle>
-                <Icon className="h-4 w-4 text-slate-400" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-green-500 mt-1">
-                  {stat.trend} from last month
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="rounded-md border border-border bg-card px-4 py-3 shadow-sm">
+            <p className="eyebrow">{s.label}</p>
+            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-navy">{s.value}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+          </div>
+        ))}
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">New quote generated for Acme Corp</p>
-                    <p className="text-sm text-slate-500">2 hours ago</p>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title">Needs attention</h2>
+            <Link href="/leads" className="text-xs font-medium text-muted-foreground hover:text-navy">
+              All brands
+            </Link>
+          </div>
+          <ul className="divide-y divide-border">
+            {stale.map((b) => (
+              <li key={b.id}>
+                <Link
+                  href={`/leads/${b.id}`}
+                  className="flex items-start justify-between gap-3 py-2.5 hover:text-cyan"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">{b.notes}</p>
                   </div>
+                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                    {b.health}%
+                  </span>
+                </Link>
+              </li>
+            ))}
+            {!stale.length && (
+              <li className="py-6 text-sm text-muted-foreground">Pipeline is current.</li>
+            )}
+          </ul>
+        </div>
+
+        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
+          <h2 className="section-title mb-3">Today on the book</h2>
+          <ul className="space-y-1">
+            {TASKS.map((t) => (
+              <li key={t.id} className="flex items-start gap-2 py-1.5">
+                <span className="mt-0.5 size-4 shrink-0 rounded-sm border border-border" />
+                <div className="min-w-0">
+                  <p className="text-sm">{t.title}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {t.due}
+                    {t.brandName ? ` · ${t.brandName}` : ''}
+                  </p>
                 </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="section-title">Quotes out</h2>
+            <Link href="/quotes" className="text-xs font-medium text-muted-foreground hover:text-navy">
+              View all
+            </Link>
+          </div>
+          <ul className="divide-y divide-border">
+            {QUOTES.filter((q) => q.status !== 'accepted' && q.status !== 'expired')
+              .slice(0, 4)
+              .map((q) => (
+                <li key={q.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <div className="min-w-0">
+                    <p className="font-mono text-sm">{q.number}</p>
+                    <p className="truncate text-xs text-muted-foreground">{q.brandName}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs tabular-nums">
+                      {formatUsd(q.units * q.unitPrice)}
+                    </span>
+                    <StatusBadge tone={quoteTone(q.status)}>{quoteStaffLabel(q.status)}</StatusBadge>
+                  </div>
+                </li>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>Top Customers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: 'Acme Corp', amount: '$12,450' },
-                { name: 'Globex Inc', amount: '$8,230' },
-                { name: 'Soylent Corp', amount: '$6,100' },
-                { name: 'Initech', amount: '$4,900' },
-              ].map((customer) => (
-                <div key={customer.name} className="flex items-center justify-between">
-                  <div className="font-medium text-sm">{customer.name}</div>
-                  <div className="text-sm text-slate-500">{customer.amount}</div>
+          </ul>
+        </div>
+
+        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
+          <h2 className="section-title mb-3">Recent activity</h2>
+          <ul className="space-y-3">
+            {ACTIVITIES.map((a) => (
+              <li key={a.id}>
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-medium text-navy">{a.title}</p>
+                  <time className="shrink-0 font-mono text-xs text-muted-foreground">{a.when}</time>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                {a.body && <p className="mt-0.5 text-sm text-muted-foreground">{a.body}</p>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
     </div>
   );
 }

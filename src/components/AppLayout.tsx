@@ -5,12 +5,14 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  Users,
+  Building2,
   FileText,
   ShoppingCart,
   Settings,
   Menu,
   X,
+  Search,
+  Plus,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,18 +24,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Leads', href: '/leads', icon: Users },
+    { name: 'Command', href: '/', icon: LayoutDashboard },
+    { name: 'Brands', href: '/leads', icon: Building2 },
     { name: 'Quotes', href: '/quotes', icon: FileText },
     { name: 'Orders', href: '/orders', icon: ShoppingCart },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
 
+  const isRecord = pathname.startsWith('/leads/') && pathname !== '/leads';
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Mobile header */}
-      <div className="md:hidden flex items-center justify-between gap-3 p-3 bg-white border-b border-slate-200">
-        <Link href="/" className="flex items-center gap-2 min-w-0">
+    <div className="flex min-h-screen flex-col bg-background md:flex-row">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-card p-3 md:hidden">
+        <Link href="/" className="flex min-w-0 items-center gap-2">
           <Image
             src={LOGO_MARK}
             alt="Prosper"
@@ -43,10 +46,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             unoptimized
           />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-slate-900 leading-tight">
-              Prosper
-            </p>
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+            <p className="truncate text-sm font-semibold leading-tight text-navy">Prosper</p>
+            <p className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
               Command
             </p>
           </div>
@@ -61,65 +62,70 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </Button>
       </div>
 
-      {/* Sidebar */}
-      <div
+      <aside
         className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-slate-950 text-white transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-[13.25rem] transform bg-navy text-white transition-transform duration-200 ease-in-out md:relative md:translate-x-0
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}
       >
-        <div className="flex h-full flex-col p-5">
-          <Link href="/" className="mb-8 flex items-center gap-3" onClick={() => setSidebarOpen(false)}>
-            <span className="grid size-9 place-items-center rounded-md bg-white/5 ring-1 ring-white/10">
+        <div className="flex h-full flex-col p-4">
+          <Link
+            href="/"
+            className="mb-6 flex items-center gap-2.5"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <span className="grid size-8 place-items-center rounded-md bg-white/5 ring-1 ring-white/10">
               <Image
                 src={LOGO_MARK}
                 alt="Prosper Manufacturing"
-                width={28}
-                height={28}
-                className="size-7 object-contain"
+                width={24}
+                height={24}
+                className="size-6 object-contain"
                 unoptimized
               />
             </span>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">Prosper</p>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+              <p className="text-[10px] font-semibold tracking-[0.08em] text-slate-400 uppercase">
                 Command
               </p>
             </div>
           </Link>
 
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {navigation.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive =
+                item.href === '/'
+                  ? pathname === '/'
+                  : pathname === item.href || pathname.startsWith(item.href + '/');
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`flex items-center space-x-3 px-3 py-2.5 rounded-md transition-colors ${
+                  className={`flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors ${
                     isActive
-                      ? 'bg-sky-600 text-white'
-                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                      ? 'bg-cyan text-navy font-semibold'
+                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
                   }`}
                   onClick={() => setSidebarOpen(false)}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
-                  <span className="text-sm font-medium">{item.name}</span>
+                  {item.name}
                 </Link>
               );
             })}
           </nav>
 
-          <div className="mt-auto border-t border-white/10 pt-4">
-            <p className="px-1 text-[10px] font-medium uppercase tracking-wider text-slate-500">
+          <div className="mt-auto border-t border-white/10 pt-3">
+            <p className="px-1 text-[10px] font-medium tracking-wider text-slate-500 uppercase">
               prosper-mfg.com
             </p>
-            <p className="mt-1 px-1 text-xs text-slate-400">Staff · Command Center</p>
+            <p className="mt-1 px-1 text-xs text-slate-400">Staff · A1 · Tijuana / SAN</p>
           </div>
         </div>
-      </div>
+      </aside>
 
-      {/* Overlay on mobile */}
       {sidebarOpen && (
         <button
           type="button"
@@ -129,9 +135,23 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col min-h-screen max-w-full md:max-w-[calc(100vw-16rem)]">
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">{children}</main>
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        {!isRecord && (
+          <header className="sticky top-0 z-20 hidden h-12 items-center gap-2 border-b border-border bg-background/90 px-4 backdrop-blur-sm md:flex">
+            <div className="flex h-8 max-w-md flex-1 items-center gap-2 rounded-md border border-border bg-card px-2.5 text-sm text-muted-foreground">
+              <Search className="size-3.5" />
+              <span className="truncate">Search brands, quotes, orders…</span>
+              <kbd className="ml-auto hidden rounded border border-border px-1.5 font-mono text-[10px] sm:inline">
+                ⌘K
+              </kbd>
+            </div>
+            <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90">
+              <Plus className="size-3.5" />
+              New
+            </Button>
+          </header>
+        )}
+        <main className={`min-w-0 flex-1 ${isRecord ? '' : 'p-4 md:p-6'}`}>{children}</main>
       </div>
     </div>
   );

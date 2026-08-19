@@ -1,71 +1,77 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
+import { StatusBadge, tierTone } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { BRANDS } from '@/lib/data';
+import { formatCompact } from '@/lib/utils';
+import { Plus, Search } from 'lucide-react';
 
-export default function LeadsPage() {
-  const leads = [
-    { id: 1, name: 'Alice Smith', company: 'Acme Corp', status: 'New', email: 'alice@acme.com', date: 'Oct 24, 2023' },
-    { id: 2, name: 'Bob Jones', company: 'Globex Inc', status: 'Contacted', email: 'bob@globex.com', date: 'Oct 23, 2023' },
-    { id: 3, name: 'Charlie Brown', company: 'Soylent Corp', status: 'Qualified', email: 'charlie@soylent.com', date: 'Oct 21, 2023' },
-    { id: 4, name: 'Diana Prince', company: 'Initech', status: 'Lost', email: 'diana@initech.com', date: 'Oct 19, 2023' },
-  ];
-
+export default function BrandsPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Leads</h1>
-          <p className="text-slate-500 mt-2">Manage your prospective customers here.</p>
-        </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" /> Add Lead
-        </Button>
+      <PageHeader
+        eyebrow="Account book"
+        title="Brands"
+        description="Every apparel account on the book — model, tier, and health."
+        actions={
+          <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90">
+            <Plus className="mr-1.5 size-3.5" />
+            New brand
+          </Button>
+        }
+      />
+
+      <div className="relative max-w-sm">
+        <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+        <Input type="search" placeholder="Filter brands…" className="pl-8" />
       </div>
 
-      <Card>
-        <CardHeader className="py-4">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-500" />
-            <Input type="search" placeholder="Search leads..." className="pl-8" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date Added</TableHead>
+      <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Brand</TableHead>
+              <TableHead>Model</TableHead>
+              <TableHead>Tier</TableHead>
+              <TableHead className="text-right">Units / yr</TableHead>
+              <TableHead className="text-right">ICP</TableHead>
+              <TableHead className="text-right">Health</TableHead>
+              <TableHead>Owner</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {BRANDS.map((b) => (
+              <TableRow key={b.id} className="cursor-pointer hover:bg-slate-50">
+                <TableCell>
+                  <Link href={`/leads/${b.id}`} className="block">
+                    <p className="font-medium text-navy hover:text-cyan">{b.name}</p>
+                    <p className="text-xs text-muted-foreground">{b.domain}</p>
+                  </Link>
+                </TableCell>
+                <TableCell className="text-muted-foreground">{b.model}</TableCell>
+                <TableCell>
+                  <StatusBadge tone={tierTone(b.tier)}>{b.tier}</StatusBadge>
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">
+                  {formatCompact(b.unitsYear)}
+                </TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{b.icp}</TableCell>
+                <TableCell className="text-right font-mono tabular-nums">{b.health}</TableCell>
+                <TableCell className="text-muted-foreground">{b.owner}</TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leads.map((lead) => (
-                <TableRow key={lead.id}>
-                  <TableCell className="font-medium">{lead.name}</TableCell>
-                  <TableCell>{lead.company}</TableCell>
-                  <TableCell>{lead.email}</TableCell>
-                  <TableCell>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium
-                      ${lead.status === 'New' ? 'bg-blue-100 text-blue-800' :
-                        lead.status === 'Contacted' ? 'bg-yellow-100 text-yellow-800' :
-                        lead.status === 'Qualified' ? 'bg-green-100 text-green-800' :
-                        'bg-slate-100 text-slate-800'
-                      }
-                    `}>
-                      {lead.status}
-                    </span>
-                  </TableCell>
-                  <TableCell>{lead.date}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

@@ -1,52 +1,84 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import Link from 'next/link';
+import { PageHeader } from '@/components/page-header';
+import { StatusBadge, quoteStaffLabel, quoteTone } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { QUOTES } from '@/lib/data';
+import { formatCompact, formatUsd, formatUsdExact } from '@/lib/utils';
+import { Plus } from 'lucide-react';
 
 export default function QuotesPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Quotes</h1>
-          <p className="text-slate-500 mt-2">Create and manage customer quotes.</p>
-        </div>
-        <Button>Create Quote</Button>
-      </div>
+      <PageHeader
+        eyebrow="Receivables"
+        title="Quotes"
+        description="Line-item capacity. Human-reviewed. Never a guess."
+        actions={
+          <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90">
+            <Plus className="mr-1.5 size-3.5" />
+            New quote
+          </Button>
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Quotes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Quote #</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">QT-1024</TableCell>
-                <TableCell>Acme Corp</TableCell>
-                <TableCell>$5,400.00</TableCell>
-                <TableCell>Sent</TableCell>
-                <TableCell>Oct 24, 2023</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">QT-1023</TableCell>
-                <TableCell>Globex Inc</TableCell>
-                <TableCell>$2,100.00</TableCell>
-                <TableCell>Accepted</TableCell>
-                <TableCell>Oct 22, 2023</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="overflow-x-auto rounded-md border border-border bg-card shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead>Number</TableHead>
+              <TableHead>Brand</TableHead>
+              <TableHead>Decoration</TableHead>
+              <TableHead className="text-right">Units</TableHead>
+              <TableHead className="text-right">Unit</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {QUOTES.map((q) => {
+              const total = q.units * q.unitPrice;
+              return (
+                <TableRow key={q.id} className="hover:bg-slate-50">
+                  <TableCell className="font-mono text-sm">{q.number}</TableCell>
+                  <TableCell>
+                    <Link
+                      href={`/leads/${q.brandId}`}
+                      className="font-medium text-navy hover:text-cyan"
+                    >
+                      {q.brandName}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{q.decoration}</TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">
+                    {formatCompact(q.units)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono tabular-nums">
+                    {formatUsdExact(q.unitPrice)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono tabular-nums font-medium">
+                    {formatUsd(total)}
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge tone={quoteTone(q.status)}>
+                      {quoteStaffLabel(q.status)}
+                    </StatusBadge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{q.date}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

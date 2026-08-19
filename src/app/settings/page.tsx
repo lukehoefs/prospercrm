@@ -1,16 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-slate-500 mt-2">Manage your account settings and preferences.</p>
-      </div>
+      <PageHeader
+        eyebrow="Workspace"
+        title="Settings"
+        description="Operator profile and notification preferences."
+      />
 
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
@@ -18,34 +19,31 @@ export default function SettingsPage() {
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         <TabsContent value="general">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Details</CardTitle>
-              <CardDescription>Update your personal information.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2 max-w-sm">
+          <div className="max-w-lg rounded-md border border-border bg-card p-5 shadow-sm">
+            <h2 className="section-title">Profile</h2>
+            <p className="mt-1 text-sm text-muted-foreground">How you appear on the book.</p>
+            <div className="mt-4 space-y-3">
+              <div className="space-y-1.5">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue="Luke" />
+                <Input id="name" defaultValue="Luke Hoefs" />
               </div>
-              <div className="space-y-2 max-w-sm">
+              <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" defaultValue="luke@prosper-mfg.com" />
               </div>
-              <Button>Save Changes</Button>
-            </CardContent>
-          </Card>
+              <Button size="sm" className="bg-cyan text-navy hover:bg-cyan/90">
+                Save changes
+              </Button>
+            </div>
+          </div>
         </TabsContent>
         <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose what you want to be notified about.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-slate-500">Settings coming soon.</p>
-            </CardContent>
-          </Card>
+          <div className="max-w-lg rounded-md border border-border bg-card p-5 shadow-sm">
+            <h2 className="section-title">Notifications</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Quote views, sample updates, and stale programs. Preferences coming next.
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

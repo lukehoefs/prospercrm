@@ -20,7 +20,7 @@ export default function CommandPage() {
   const stale = BRANDS.filter((b) => b.health < 70);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-4">
       <PageHeader
         eyebrow="Floor feed"
         title="Command"
@@ -29,13 +29,13 @@ export default function CommandPage() {
           <>
             <Link
               href="/quotes"
-              className="inline-flex h-7 items-center rounded-md border border-border bg-card px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+              className="inline-flex h-8 items-center rounded border border-border bg-card px-2.5 text-[12px] font-medium hover:bg-muted"
             >
               New quote
             </Link>
             <Link
               href="/leads"
-              className="inline-flex h-7 items-center rounded-md bg-cyan px-2.5 text-[0.8rem] font-semibold text-navy hover:bg-cyan/90"
+              className="inline-flex h-8 items-center rounded bg-cyan px-2.5 text-[12px] font-semibold text-navy hover:bg-cyan/90"
             >
               New brand
             </Link>
@@ -43,21 +43,25 @@ export default function CommandPage() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="rounded-md border border-border bg-card px-4 py-3 shadow-sm">
-            <p className="eyebrow">{s.label}</p>
-            <p className="mt-1 font-mono text-2xl font-semibold tabular-nums text-navy">{s.value}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{s.hint}</p>
+          <div key={s.label} className="rounded border border-border bg-card px-3.5 py-3 shadow-sm">
+            <p className="text-[10px] font-semibold tracking-[0.06em] text-slate-500 uppercase">
+              {s.label}
+            </p>
+            <p className="mt-1 font-mono text-[1.35rem] font-semibold tabular-nums text-navy">
+              {s.value}
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-500">{s.hint}</p>
           </div>
         ))}
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
+      <section className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
             <h2 className="section-title">Needs attention</h2>
-            <Link href="/leads" className="text-xs font-medium text-muted-foreground hover:text-navy">
+            <Link href="/leads" className="text-[11px] font-medium text-slate-500 hover:text-navy">
               All brands
             </Link>
           </div>
@@ -66,33 +70,33 @@ export default function CommandPage() {
               <li key={b.id}>
                 <Link
                   href={`/leads/${b.id}`}
-                  className="flex items-start justify-between gap-3 py-2.5 hover:text-cyan"
+                  className="flex items-start justify-between gap-3 px-3.5 py-2.5 hover:bg-cyan/[0.04]"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{b.name}</p>
-                    <p className="text-xs text-muted-foreground">{b.notes}</p>
+                    <p className="truncate text-[13px] font-semibold text-navy">{b.name}</p>
+                    <p className="text-[12px] text-slate-500">{b.notes}</p>
                   </div>
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                    {b.health}%
-                  </span>
+                  <span className="font-mono text-[11px] tabular-nums text-slate-500">{b.health}%</span>
                 </Link>
               </li>
             ))}
             {!stale.length && (
-              <li className="py-6 text-sm text-muted-foreground">Pipeline is current.</li>
+              <li className="px-3.5 py-6 text-[13px] text-slate-500">Pipeline is current.</li>
             )}
           </ul>
         </div>
 
-        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
-          <h2 className="section-title mb-3">Today on the book</h2>
-          <ul className="space-y-1">
+        <div className="rounded border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-3.5 py-2.5">
+            <h2 className="section-title">Today on the book</h2>
+          </div>
+          <ul className="divide-y divide-border">
             {TASKS.map((t) => (
-              <li key={t.id} className="flex items-start gap-2 py-1.5">
-                <span className="mt-0.5 size-4 shrink-0 rounded-sm border border-border" />
+              <li key={t.id} className="flex items-start gap-2.5 px-3.5 py-2.5">
+                <span className="mt-0.5 size-3.5 shrink-0 rounded-sm border border-border" />
                 <div className="min-w-0">
-                  <p className="text-sm">{t.title}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
+                  <p className="text-[13px] text-navy">{t.title}</p>
+                  <p className="font-mono text-[11px] text-slate-500">
                     {t.due}
                     {t.brandName ? ` · ${t.brandName}` : ''}
                   </p>
@@ -103,11 +107,11 @@ export default function CommandPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between">
+      <section className="grid gap-3 lg:grid-cols-2">
+        <div className="rounded border border-border bg-card shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
             <h2 className="section-title">Quotes out</h2>
-            <Link href="/quotes" className="text-xs font-medium text-muted-foreground hover:text-navy">
+            <Link href="/quotes" className="text-[11px] font-medium text-slate-500 hover:text-navy">
               View all
             </Link>
           </div>
@@ -115,13 +119,13 @@ export default function CommandPage() {
             {QUOTES.filter((q) => q.status !== 'accepted' && q.status !== 'expired')
               .slice(0, 4)
               .map((q) => (
-                <li key={q.id} className="flex items-center justify-between gap-3 py-2.5">
+                <li key={q.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
                   <div className="min-w-0">
-                    <p className="font-mono text-sm">{q.number}</p>
-                    <p className="truncate text-xs text-muted-foreground">{q.brandName}</p>
+                    <p className="font-mono text-[13px] font-medium text-navy">{q.number}</p>
+                    <p className="truncate text-[12px] text-slate-500">{q.brandName}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs tabular-nums">
+                    <span className="font-mono text-[12px] tabular-nums text-slate-700">
                       {formatUsd(q.units * q.unitPrice)}
                     </span>
                     <StatusBadge tone={quoteTone(q.status)}>{quoteStaffLabel(q.status)}</StatusBadge>
@@ -131,16 +135,18 @@ export default function CommandPage() {
           </ul>
         </div>
 
-        <div className="rounded-md border border-border bg-card p-4 shadow-sm">
-          <h2 className="section-title mb-3">Recent activity</h2>
-          <ul className="space-y-3">
+        <div className="rounded border border-border bg-card shadow-sm">
+          <div className="border-b border-border px-3.5 py-2.5">
+            <h2 className="section-title">Recent activity</h2>
+          </div>
+          <ul className="divide-y divide-border">
             {ACTIVITIES.map((a) => (
-              <li key={a.id}>
+              <li key={a.id} className="px-3.5 py-2.5">
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-sm font-medium text-navy">{a.title}</p>
-                  <time className="shrink-0 font-mono text-xs text-muted-foreground">{a.when}</time>
+                  <p className="text-[13px] font-semibold text-navy">{a.title}</p>
+                  <time className="shrink-0 font-mono text-[11px] text-slate-500">{a.when}</time>
                 </div>
-                {a.body && <p className="mt-0.5 text-sm text-muted-foreground">{a.body}</p>}
+                {a.body && <p className="mt-0.5 text-[12px] text-slate-500">{a.body}</p>}
               </li>
             ))}
           </ul>

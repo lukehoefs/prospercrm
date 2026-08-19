@@ -4,23 +4,25 @@ import { StatusBadge, quoteTone, quoteStaffLabel } from '@/components/status-bad
 import { ACTIVITIES, BRANDS, QUOTES, TASKS } from '@/lib/data';
 import { formatCompact, formatUsd } from '@/lib/utils';
 
+function initials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
 export default function CommandPage() {
   const openQuotes = QUOTES.filter((q) => q.status === 'sent' || q.status === 'viewed');
   const pipeline = QUOTES.reduce((sum, q) => sum + q.units * q.unitPrice, 0);
   const activeBrands = BRANDS.filter((b) => b.tier === 'Active' || b.tier === 'Strategic').length;
   const unitsQuoted = QUOTES.reduce((sum, q) => sum + q.units, 0);
 
-  const stats = [
-    { label: 'Open pipeline', value: formatUsd(pipeline), hint: `${openQuotes.length} quotes out` },
-    { label: 'Units quoted', value: formatCompact(unitsQuoted), hint: 'Across live programs' },
-    { label: 'Active brands', value: String(activeBrands), hint: `${BRANDS.length} on the book` },
-    { label: 'Samples / follow-ups', value: String(TASKS.length), hint: "On today's list" },
-  ];
-
   const stale = BRANDS.filter((b) => b.health < 70);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <PageHeader
         eyebrow="Floor feed"
         title="Command"
@@ -43,23 +45,32 @@ export default function CommandPage() {
         }
       />
 
-      <section className="grid grid-cols-2 gap-2 xl:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="rounded border border-border bg-card px-3.5 py-3 shadow-sm">
-            <p className="text-[10px] font-semibold tracking-[0.06em] text-slate-500 uppercase">
-              {s.label}
-            </p>
-            <p className="mt-1 font-mono text-[1.35rem] font-semibold tabular-nums text-navy">
-              {s.value}
-            </p>
-            <p className="mt-0.5 text-[11px] text-slate-500">{s.hint}</p>
-          </div>
-        ))}
-      </section>
+      <div className="kpi-strip">
+        <div>
+          <p className="kpi-label">Open pipeline</p>
+          <p className="kpi-value">{formatUsd(pipeline)}</p>
+          <p className="kpi-hint">{openQuotes.length} quotes out</p>
+        </div>
+        <div>
+          <p className="kpi-label">Units quoted</p>
+          <p className="kpi-value">{formatCompact(unitsQuoted)}</p>
+          <p className="kpi-hint">Across live programs</p>
+        </div>
+        <div>
+          <p className="kpi-label">Active brands</p>
+          <p className="kpi-value">{activeBrands}</p>
+          <p className="kpi-hint">{BRANDS.length} on the book</p>
+        </div>
+        <div>
+          <p className="kpi-label">Samples / follow-ups</p>
+          <p className="kpi-value">{TASKS.length}</p>
+          <p className="kpi-hint">On today's list</p>
+        </div>
+      </div>
 
       <section className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded border border-border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
+        <div className="panel">
+          <div className="panel-header">
             <h2 className="section-title">Needs attention</h2>
             <Link href="/leads" className="text-[11px] font-medium text-slate-500 hover:text-navy">
               All brands
@@ -70,30 +81,33 @@ export default function CommandPage() {
               <li key={b.id}>
                 <Link
                   href={`/leads/${b.id}`}
-                  className="flex items-start justify-between gap-3 px-3.5 py-2.5 hover:bg-cyan/[0.04]"
+                  className="flex items-center gap-2.5 px-3 py-2 hover:bg-cyan/[0.04]"
                 >
-                  <div className="min-w-0">
+                  <span className="grid size-7 shrink-0 place-items-center rounded bg-navy text-[10px] font-semibold text-white">
+                    {initials(b.name)}
+                  </span>
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-[13px] font-semibold text-navy">{b.name}</p>
-                    <p className="text-[12px] text-slate-500">{b.notes}</p>
+                    <p className="truncate text-[12px] text-slate-500">{b.notes}</p>
                   </div>
                   <span className="font-mono text-[11px] tabular-nums text-slate-500">{b.health}%</span>
                 </Link>
               </li>
             ))}
             {!stale.length && (
-              <li className="px-3.5 py-6 text-[13px] text-slate-500">Pipeline is current.</li>
+              <li className="px-3 py-5 text-center text-[13px] text-slate-500">Pipeline is current.</li>
             )}
           </ul>
         </div>
 
-        <div className="rounded border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-3.5 py-2.5">
+        <div className="panel">
+          <div className="panel-header">
             <h2 className="section-title">Today on the book</h2>
           </div>
           <ul className="divide-y divide-border">
             {TASKS.map((t) => (
-              <li key={t.id} className="flex items-start gap-2.5 px-3.5 py-2.5">
-                <span className="mt-0.5 size-3.5 shrink-0 rounded-sm border border-border" />
+              <li key={t.id} className="flex items-start gap-2.5 px-3 py-2">
+                <span className="mt-1 size-3.5 shrink-0 rounded-sm border border-border bg-white" />
                 <div className="min-w-0">
                   <p className="text-[13px] text-navy">{t.title}</p>
                   <p className="font-mono text-[11px] text-slate-500">
@@ -108,8 +122,8 @@ export default function CommandPage() {
       </section>
 
       <section className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded border border-border bg-card shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-3.5 py-2.5">
+        <div className="panel">
+          <div className="panel-header">
             <h2 className="section-title">Quotes out</h2>
             <Link href="/quotes" className="text-[11px] font-medium text-slate-500 hover:text-navy">
               View all
@@ -119,7 +133,7 @@ export default function CommandPage() {
             {QUOTES.filter((q) => q.status !== 'accepted' && q.status !== 'expired')
               .slice(0, 4)
               .map((q) => (
-                <li key={q.id} className="flex items-center justify-between gap-3 px-3.5 py-2.5">
+                <li key={q.id} className="flex items-center justify-between gap-3 px-3 py-2">
                   <div className="min-w-0">
                     <p className="font-mono text-[13px] font-medium text-navy">{q.number}</p>
                     <p className="truncate text-[12px] text-slate-500">{q.brandName}</p>
@@ -135,13 +149,13 @@ export default function CommandPage() {
           </ul>
         </div>
 
-        <div className="rounded border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-3.5 py-2.5">
+        <div className="panel">
+          <div className="panel-header">
             <h2 className="section-title">Recent activity</h2>
           </div>
           <ul className="divide-y divide-border">
             {ACTIVITIES.map((a) => (
-              <li key={a.id} className="px-3.5 py-2.5">
+              <li key={a.id} className="px-3 py-2">
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[13px] font-semibold text-navy">{a.title}</p>
                   <time className="shrink-0 font-mono text-[11px] text-slate-500">{a.when}</time>

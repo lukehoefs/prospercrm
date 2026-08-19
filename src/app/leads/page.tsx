@@ -34,13 +34,15 @@ function healthColor(score: number) {
 function HealthMeter({ score }: { score: number }) {
   return (
     <div className="flex items-center justify-end gap-2">
-      <div className="h-1.5 w-14 overflow-hidden rounded-full bg-slate-200/80">
+      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-slate-200/90">
         <div
           className={`h-full rounded-full ${healthColor(score)}`}
           style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
         />
       </div>
-      <span className="w-6 text-right font-mono text-[12px] tabular-nums text-slate-700">{score}</span>
+      <span className="w-5 text-right font-mono text-[12px] tabular-nums text-slate-700">
+        {score}
+      </span>
     </div>
   );
 }
@@ -51,7 +53,7 @@ export default function BrandsPage() {
   const totalUnits = BRANDS.reduce((s, b) => s + b.unitsYear, 0);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <PageHeader
         eyebrow="Account book"
         title="Brands"
@@ -64,24 +66,27 @@ export default function BrandsPage() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {[
-          { label: 'On the book', value: String(BRANDS.length) },
-          { label: 'Strategic', value: String(strategic) },
-          { label: 'Active', value: String(active) },
-          { label: 'Units / yr', value: formatCompact(totalUnits) },
-        ].map((s) => (
-          <div key={s.label} className="rounded border border-border bg-card px-3 py-2.5">
-            <p className="text-[10px] font-semibold tracking-[0.06em] text-slate-500 uppercase">
-              {s.label}
-            </p>
-            <p className="mt-0.5 font-mono text-lg font-semibold tabular-nums text-navy">{s.value}</p>
-          </div>
-        ))}
+      <div className="kpi-strip">
+        <div>
+          <p className="kpi-label">On the book</p>
+          <p className="kpi-value">{BRANDS.length}</p>
+        </div>
+        <div>
+          <p className="kpi-label">Strategic</p>
+          <p className="kpi-value">{strategic}</p>
+        </div>
+        <div>
+          <p className="kpi-label">Active</p>
+          <p className="kpi-value">{active}</p>
+        </div>
+        <div>
+          <p className="kpi-label">Units / yr</p>
+          <p className="kpi-value">{formatCompact(totalUnits)}</p>
+        </div>
       </div>
 
       <div className="overflow-hidden rounded-md border border-border bg-card shadow-sm">
-        <div className="flex flex-col gap-2 border-b border-border bg-[#f7f9fb] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-border bg-[#f4f7fa] px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative max-w-xs flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-slate-400" />
             <Input
@@ -92,7 +97,9 @@ export default function BrandsPage() {
           </div>
           <p className="text-[12px] text-slate-500">
             Showing{' '}
-            <span className="font-mono tabular-nums font-medium text-slate-700">{BRANDS.length}</span>
+            <span className="font-mono tabular-nums font-medium text-slate-700">
+              {BRANDS.length}
+            </span>
           </p>
         </div>
 

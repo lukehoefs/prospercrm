@@ -14,8 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CRM System",
-  description: "Lightning fast CRM",
+  title: "Prosper Command",
+  description: "Command Center for Prosper Manufacturing — print, pack, fulfill.",
+  icons: {
+    icon: "https://www.prosper-mfg.com/prosperavi.png",
+  },
 };
 
 export default function RootLayout({

@@ -10,14 +10,16 @@ export function RecordShell({
   related: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-slate-200 bg-white px-4 py-4 sm:px-6">{header}</div>
-      <div className="grid min-h-0 flex-1 lg:grid-cols-[240px_minmax(0,1fr)_280px]">
-        <aside className="order-2 space-y-4 border-b border-slate-200 bg-white p-4 lg:order-1 lg:border-b-0 lg:border-r">
+    <div className="flex min-h-[calc(100vh)] flex-col bg-background">
+      <div className="border-b border-border bg-card px-4 py-3.5 sm:px-5">{header}</div>
+      <div className="grid min-h-0 flex-1 lg:grid-cols-[260px_minmax(0,1fr)_300px]">
+        <aside className="order-2 space-y-5 border-b border-border bg-card p-4 lg:order-1 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-b-0">
           {about}
         </aside>
-        <section className="order-1 min-w-0 space-y-4 p-4 sm:p-5 lg:order-2">{activity}</section>
-        <aside className="order-3 space-y-4 border-t border-slate-200 bg-white p-4 lg:border-t-0 lg:border-l">
+        <section className="order-1 min-w-0 space-y-4 bg-background p-4 sm:p-5 lg:order-2 lg:min-h-0 lg:overflow-y-auto">
+          {activity}
+        </section>
+        <aside className="order-3 space-y-5 border-t border-border bg-card p-4 lg:min-h-0 lg:overflow-y-auto lg:border-t-0 lg:border-l">
           {related}
         </aside>
       </div>
@@ -37,7 +39,7 @@ export function RecordSection({
   return (
     <div>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.06em] text-slate-500">
+        <h2 className="text-[10px] font-semibold tracking-[0.08em] text-slate-500 uppercase">
           {title}
         </h2>
         {action}

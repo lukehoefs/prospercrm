@@ -152,7 +152,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             </Button>
           </header>
         )}
-        <main className={`min-w-0 flex-1 ${isRecord ? '' : 'p-4 md:p-5'}`}>{children}</main>
+        <main className={`min-w-0 flex-1 ${isRecord ? '' : 'p-3.5 md:p-4'}`}>{children}</main>
       </div>
     </div>
   );

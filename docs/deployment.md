@@ -37,6 +37,13 @@ Until they are set, the build still succeeds and every page renders except
 `/leads`, which reports "Twenty is not configured". That is by design:
 `getTwentyConfig()` throws rather than guessing a host.
 
+**Setting them is not enough on its own.** Vercel injects environment variables
+at build time, so a deployment built before a variable existed never sees it.
+After adding or changing either value, redeploy — push a commit, or use Redeploy
+in the dashboard. Skipping this produces the most confusing failure available
+here: a correct key, correctly saved, and a page that still insists Twenty is not
+configured.
+
 ## Access protection
 
 The app has **no authentication of its own**, and its Server Actions accept

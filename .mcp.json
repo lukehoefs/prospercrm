@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "easypanel": {
+      "type": "http",
+      "url": "https://k9pirj.easypanel.host/api/mcp",
+      "headers": {
+        "Authorization": "Bearer ${EASYPANEL_TOKEN}"
+      }
+    }
+  }
+}
